@@ -34,14 +34,14 @@ func (client *TCPClient) WriteString(message string, addLineEndings bool) {
 func (client *TCPClient) Read() []byte {
 	eom := []byte{0x0d, 0x0a}                         // \r\n
 	multilinePrefix := []byte{0x32, 0x30, 0x32, 0x2d} /* 202- */
-	overallBuf := make([]byte, 0)
+	message := make([]byte, 0)
 
 	i := 0
 	for {
 		// Read buffer in
 		buffer := make([]byte, 1024)
 		client.connection.Read(buffer)
-		overallBuf = append(overallBuf, buffer...)
+		message = append(message, buffer...)
 
 		// If first read, and response is multi-line, update end-of-message slice
 		if i == 0 && bytes.HasPrefix(buffer, multilinePrefix) {
@@ -49,10 +49,11 @@ func (client *TCPClient) Read() []byte {
 		}
 
 		// Check if message has ended
-		trimmedBuf := bytes.TrimRight(overallBuf, "\x00")
+		trimmedBuf := bytes.TrimRight(message, "\x00")
 		if bytes.HasSuffix(trimmedBuf, eom) {
 			return trimmedBuf
 		}
+
 		i++
 	}
 }
