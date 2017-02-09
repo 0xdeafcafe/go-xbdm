@@ -64,7 +64,7 @@ func (client *TCPClient) ReadString() string {
 
 // Close ends the open TCP connection.
 func (client *TCPClient) Close() {
-	// Wish out loved ones goodbye
+	// Wish our loved ones goodbye
 	client.WriteString("bye", true)
 	client.connection.Close()
 }
