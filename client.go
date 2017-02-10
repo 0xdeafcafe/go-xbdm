@@ -14,7 +14,7 @@ const (
 )
 
 // DebugName returns the debug name of the Xbox
-func (client *Client) DebugName() string {
+func (client *Client) DebugName() (string, error) {
 	client.tcpClient.WriteString("dbgname", true)
 	return client.tcpClient.ReadString()
 }
