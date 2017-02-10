@@ -92,3 +92,23 @@ func NewTCPClientWithPort(xboxIP string, port int) (*TCPClient, error) {
 
 	return client, nil
 }
+
+// responseIsError checks to see if the response message is valid of an error
+func responseIsError(str string) bool {
+	r := regexp.MustCompile(`(?P<code>[\d]{3})`)
+	matches := r.FindStringSubmatch(str)
+	names := r.SubexpNames()
+	if len(matches) < 2 {
+		return false
+	}
+
+	code := -1
+
+	for i := range matches {
+		if names[i] == "code" {
+			code, _ = strconv.Atoi(matches[i])
+		}
+	}
+
+	return code <= 299 && code >= 200
+}
