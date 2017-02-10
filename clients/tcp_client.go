@@ -69,7 +69,7 @@ func (client *TCPClient) ReadString() (string, error) {
 	strings.TrimSuffix(str, "\r\n")
 
 	// Check we good t' go
-	if responseIsError(str) {
+	if responseIsSuccess(str) {
 		return str, nil
 	}
 
@@ -107,8 +107,8 @@ func NewTCPClientWithPort(xboxIP string, port int) (*TCPClient, error) {
 	return client, nil
 }
 
-// responseIsError checks to see if the response message is valid of an error
-func responseIsError(str string) bool {
+// responseIsSuccess checks to see if the response message is valid of an error
+func responseIsSuccess(str string) bool {
 	r := regexp.MustCompile(`(?P<code>[\d]{3})`)
 	matches := r.FindStringSubmatch(str)
 	names := r.SubexpNames()
