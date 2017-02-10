@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 // TCPClient defines the structure of the TCP client.
@@ -59,8 +62,19 @@ func (client *TCPClient) Read(bufferSize int) []byte {
 }
 
 // ReadString reads the pending response from the xbox into a string.
-func (client *TCPClient) ReadString() string {
-	return string(client.Read())
+func (client *TCPClient) ReadString() (string, error) {
+	str := string(client.Read(150))
+
+	// Remove final newline shit
+	strings.TrimSuffix(str, "\r\n")
+
+	// Check we good t' go
+	if responseIsError(str) {
+		return str, nil
+	}
+
+	// fuck
+	return "", errors.New(str)
 }
 
 // Close ends the open TCP connection.
