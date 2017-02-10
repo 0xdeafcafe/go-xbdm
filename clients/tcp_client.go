@@ -86,7 +86,7 @@ func NewTCPClientWithPort(xboxIP string, port int) (*TCPClient, error) {
 	client.connection = conn
 
 	// Check connection pulse exists
-	if !bytes.Equal(client.Read(), connectionPulseMessage) {
+	if !bytes.Equal(client.Read(150), connectionPulseMessage) {
 		return nil, errors.New("connection pulse message failed")
 	}
 
