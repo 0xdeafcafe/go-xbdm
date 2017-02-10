@@ -31,7 +31,7 @@ func (client *TCPClient) WriteString(message string, addLineEndings bool) {
 }
 
 // Read reads the pending response from the xbox.
-func (client *TCPClient) Read() []byte {
+func (client *TCPClient) Read(bufferSize int) []byte {
 	eom := []byte{0x0d, 0x0a}                         // \r\n
 	multilinePrefix := []byte{0x32, 0x30, 0x32, 0x2d} /* 202- */
 	message := make([]byte, 0)
@@ -39,7 +39,7 @@ func (client *TCPClient) Read() []byte {
 	i := 0
 	for {
 		// Read buffer in
-		buffer := make([]byte, 1024)
+		buffer := make([]byte, bufferSize)
 		client.connection.Read(buffer)
 		message = append(message, buffer...)
 
