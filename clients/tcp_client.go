@@ -1,12 +1,10 @@
 package clients
 
 import (
-	"bytes"
+	"bufio"
 	"errors"
 	"fmt"
 	"net"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -14,73 +12,59 @@ import (
 type TCPClient struct {
 	Host       string
 	connection net.Conn
+
+	Reader *bufio.Reader
+	Writer *bufio.Writer
 }
 
-var connectionPulseMessage = []byte{0x32, 0x30, 0x31, 0x2d, 0x20, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x65, 0x64, 0x0d, 0x0a}
+const (
+	messageSuffix = "\r\n"
+)
+
+var connectionPulseMessage = `201- connected`
 
 // Write sends a byte slice to the xbox.
-func (client *TCPClient) Write(data []byte) {
-	client.connection.Write(data)
+func (client *TCPClient) Write(data []byte) (int, error) {
+	n, err := client.Writer.Write(data)
+	if err != nil {
+		return n, err
+	}
+
+	err = client.Writer.Flush()
+	if err != nil {
+		return -1, err
+	}
+
+	return n, nil
 }
 
-// WriteString sends a string to the xbox. If `addLineEndings` is true, it will append
-// `\r\n` to the message.
-func (client *TCPClient) WriteString(message string, addLineEndings bool) {
-	if addLineEndings {
-		client.connection.Write([]byte(fmt.Sprintf("%s\r\n", message)))
-	} else {
-		client.connection.Write([]byte(message))
+// WriteString sends a command to the Xbox. This function will suffix the command with
+// `\r\n`.
+func (client *TCPClient) WriteString(message string) (int, error) {
+	return client.Write([]byte(message + messageSuffix))
+}
+
+// ReadString reads a string response from the Xbox.
+func (client *TCPClient) ReadString() (string, error) {
+	str, err := client.Reader.ReadString('\n')
+	if err != nil {
+		return "", err
 	}
+
+	return strings.TrimSuffix(str, "\r\n"), nil
 }
 
 // Read reads the pending response from the xbox.
-func (client *TCPClient) Read(bufferSize int) []byte {
-	eom := []byte{0x0d, 0x0a}                         // \r\n
-	multilinePrefix := []byte{0x32, 0x30, 0x32, 0x2d} /* 202- */
-	message := make([]byte, 0)
-
-	i := 0
-	for {
-		// Read buffer in
-		buffer := make([]byte, bufferSize)
-		client.connection.Read(buffer)
-		message = append(message, buffer...)
-
-		// If first read, and response is multi-line, update end-of-message slice
-		if i == 0 && bytes.HasPrefix(buffer, multilinePrefix) {
-			eom = []byte{0x2e, 0x0d, 0x0a} // .\r\n
-		}
-
-		// Check if message has ended
-		trimmedBuf := bytes.TrimRight(message, "\x00")
-		if bytes.HasSuffix(trimmedBuf, eom) {
-			return trimmedBuf
-		}
-
-		i++
-	}
-}
-
-// ReadString reads the pending response from the xbox into a string.
-func (client *TCPClient) ReadString() (string, error) {
-	str := string(client.Read(150))
-
-	// Remove final newline shit
-	strings.TrimSuffix(str, "\r\n")
-
-	// Check we good t' go
-	if responseIsSuccess(str) {
-		return str, nil
-	}
-
-	// fuck
-	return "", errors.New(str)
+func (client *TCPClient) Read(len int) ([]byte, int, error) {
+	buffer := make([]byte, len)
+	n, err := client.Reader.Read(buffer)
+	return buffer, n, err
 }
 
 // Close ends the open TCP connection.
 func (client *TCPClient) Close() {
 	// Wish our loved ones goodbye
-	client.WriteString("bye", true)
+	client.WriteString("bye")
 	client.connection.Close()
 }
 
@@ -98,31 +82,14 @@ func NewTCPClientWithPort(xboxIP string, port int) (*TCPClient, error) {
 
 	// Set connection
 	client.connection = conn
+	client.Reader = bufio.NewReader(client.connection)
+	client.Writer = bufio.NewWriter(client.connection)
 
 	// Check connection pulse exists
-	if !bytes.Equal(client.Read(150), connectionPulseMessage) {
+	pulse, err := client.ReadString()
+	if pulse != connectionPulseMessage {
 		return nil, errors.New("connection pulse message failed")
 	}
 
 	return client, nil
-}
-
-// responseIsSuccess checks to see if the response message is valid of an error
-func responseIsSuccess(str string) bool {
-	r := regexp.MustCompile(`(?P<code>[\d]{3})`)
-	matches := r.FindStringSubmatch(str)
-	names := r.SubexpNames()
-	if len(matches) < 2 {
-		return false
-	}
-
-	code := -1
-
-	for i := range matches {
-		if names[i] == "code" {
-			code, _ = strconv.Atoi(matches[i])
-		}
-	}
-
-	return code <= 299 && code >= 200
 }
