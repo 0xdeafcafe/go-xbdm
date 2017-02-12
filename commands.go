@@ -1,18 +1,23 @@
 package goxbdm
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
+	"log"
 	"strings"
 )
 
-// RebootType ..
-type RebootType uint8
+// rebootType is a custom type for storing different types of reboot.
+type rebootType uint8
 
 const (
+	screenshotHeaderFormat         = "pitch=0x%x width=0x%x height=0x%x format=0x%x offsetx=0x00000000 offsety=0x00000000, framebuffersize=0x%x"
 	rebootTitleToActiveTitleFormat = `magicboot title=%s directory=%s`
 
 	// RebootTitle defines the enum for rebooting to the Developer Dashboard.
-	RebootTitle RebootType = iota
+	RebootTitle rebootType = iota
 
 	// RebootTitleToActiveTitle defines the enum for rebooting to the currently active
 	// title.
@@ -23,38 +28,69 @@ const (
 )
 
 // Reboot the Xbox console.
-func (client *Client) Reboot(rebootType RebootType) error {
+func (client *Client) Reboot(rebootType rebootType) error {
 	switch {
 	case rebootType == RebootTitle:
-		client.tcpClient.WriteString("magicboot ", true)
-		_, err := client.tcpClient.ReadString()
+		_, err := client.SendCommand("magicboot")
 		return err
 
 	case rebootType == RebootTitleToActiveTitle:
-		client.tcpClient.WriteString("xbeinfo running ", true)
-		info, err := client.tcpClient.ReadString()
+		_, err := client.SendCommand("xbeinfo running")
 		if err != nil {
 			return err
 		}
 
-		// Parse response, and read out body
-		body, _ := parseMultilineResponse(info)
-		title := body["name"]
+		// Read the body
+		body, err := client.ReadMultilineResponse()
+		if err != nil {
+			return err
+		}
 
-		// Split by last `\\` in title to get title directory
-		titleDirectory := fmt.Sprintf(`%s"`, title[0:strings.LastIndex(title, "\\")])
+		// Read information out, and retrieve title directory
+		values := client.ParseSpaceSeparatedValues(body)
+		name := values["name"]
+		titleDirectory := fmt.Sprintf(`%s"`, name[0:strings.LastIndex(name, "\\")])
 
 		// Tell xbox what's gucci
-		client.tcpClient.WriteString(fmt.Sprintf(rebootTitleToActiveTitleFormat, title, titleDirectory), true)
-		_, err = client.tcpClient.ReadString()
+		_, err = client.SendCommand(fmt.Sprintf(rebootTitleToActiveTitleFormat, name, titleDirectory))
 		return err
 
 	case rebootType == RebootCold:
-		client.tcpClient.WriteString("magicboot  COLD", true)
-		_, err := client.tcpClient.ReadString()
+		_, err := client.SendCommand("magicboot COLD")
 		return err
 
 	default:
 		panic("invalid reboot type")
 	}
+}
+
+// Screenshot dumps the frame buffer of the Xbox.
+func (client *Client) Screenshot() ([]byte, error) {
+	resp, err := client.SendCommand("screenshot")
+	if err != nil {
+		return nil, err
+	}
+	if resp != "203- binary response follows" {
+		return nil, errors.New(resp)
+	}
+
+	// Read header values
+	header, _ := client.tcpClient.ReadString()
+	var pitch, width, height, format, frameBufferSize int
+	fmt.Sscanf(header, screenshotHeaderFormat, &pitch, &width, &height, &format, &frameBufferSize)
+	buf := bytes.NewBuffer(nil)
+	buf.Grow(frameBufferSize)
+
+	_, err = io.CopyN(buf, client.tcpClient.Reader, int64(frameBufferSize))
+	if err != nil {
+		log.Fatal("Reading image data failed: ", err)
+	}
+
+	// Deswizzle this thing
+	data := buf.Bytes()
+	for i := 0; i < pitch*height; i += pitch / width {
+		data[i], data[i+2] = data[i+2], data[i]
+	}
+
+	return data, nil
 }
