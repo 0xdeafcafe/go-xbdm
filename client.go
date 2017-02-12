@@ -28,7 +28,7 @@ func NewXBDMClient(xboxIP string) (*Client, error) {
 	return NewXBDMClientWithPort(xboxIP, defaultXboxTCPPort)
 }
 
-// NewXBDMClientWithPort ..
+// NewXBDMClientWithPort creates a new XBDM client with a custom port.
 func NewXBDMClientWithPort(xboxIP string, port int) (*Client, error) {
 	tcpClient, err := clients.NewTCPClientWithPort(xboxIP, port)
 	if err != nil {
@@ -42,6 +42,7 @@ func NewXBDMClientWithPort(xboxIP string, port int) (*Client, error) {
 	return client, nil
 }
 
+// parseMultilineResponse reads the space separated values into a map.
 func parseMultilineResponse(str string) (map[string]string, error) {
 	body := make(map[string]string)
 
