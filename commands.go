@@ -64,6 +64,7 @@ func (client *Client) Reboot(rebootType rebootType) error {
 	}
 }
 
+// RunningXBEInfo gets the xbeinfo of the currently running title.
 // Screenshot dumps the frame buffer of the Xbox.
 func (client *Client) Screenshot() ([]byte, error) {
 	resp, err := client.SendCommand("screenshot")
