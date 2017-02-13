@@ -17,6 +17,7 @@ type Client struct {
 	tcpClient *clients.TCPClient
 
 	consoleName string
+	ConsoleIP   string
 }
 
 const (
@@ -87,10 +88,19 @@ func NewXBDMClientWithPort(xboxIP string, port int) (*Client, error) {
 		return nil, err
 	}
 
+	// Create client
 	client := &Client{
 		tcpClient: tcpClient,
+		ConsoleIP: xboxIP,
 	}
 
+	// Store debug console name
+	dbgName, err := client.DebugName()
+	if err != nil {
+		return nil, err
+	}
+
+	client.consoleName = dbgName
 	return client, nil
 }
 
