@@ -7,6 +7,9 @@ import (
 	"io"
 	"log"
 	"strings"
+
+	"github.com/0xdeafcafe/go-xbdm/models"
+	"github.com/0xdeafcafe/go-xbdm/ssv"
 )
 
 // rebootType is a custom type for storing different types of reboot.
@@ -35,23 +38,16 @@ func (client *Client) Reboot(rebootType rebootType) error {
 		return err
 
 	case rebootType == RebootTitleToActiveTitle:
-		_, err := client.SendCommand("xbeinfo running")
+		info, err := client.RunningXBEInfo()
 		if err != nil {
 			return err
 		}
 
-		// Read the body
-		body, err := client.ReadMultilineResponse()
-		if err != nil {
-			return err
-		}
-
-		// Read information out, and retrieve title directory
-		values := client.ParseSpaceSeparatedValues(body)
-		name := values["name"]
+		// Get directory of the currently running title
+		name := info.Name
 		titleDirectory := fmt.Sprintf(`%s"`, name[0:strings.LastIndex(name, "\\")])
 
-		// Tell xbox what's gucci
+		// Tell Xbox which title to launch
 		_, err = client.SendCommand(fmt.Sprintf(rebootTitleToActiveTitleFormat, name, titleDirectory))
 		return err
 
@@ -65,6 +61,26 @@ func (client *Client) Reboot(rebootType rebootType) error {
 }
 
 // RunningXBEInfo gets the xbeinfo of the currently running title.
+func (client *Client) RunningXBEInfo() (*models.XBEInfo, error) {
+	_, err := client.SendCommand("xbeinfo running")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := client.ReadMultilineResponse()
+	if err != nil {
+		return nil, err
+	}
+
+	xbeInfo := &models.XBEInfo{}
+	err = ssv.Unmarshal(body, &xbeInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return xbeInfo, nil
+}
+
 // Screenshot dumps the frame buffer of the Xbox.
 func (client *Client) Screenshot() ([]byte, error) {
 	resp, err := client.SendCommand("screenshot")
