@@ -1,9 +1,13 @@
 package goxbdm
 
 import (
+	"errors"
+	"strconv"
 	"strings"
 
 	"fmt"
+
+	"regexp"
 
 	"github.com/0xdeafcafe/go-xbdm/clients"
 )
@@ -11,6 +15,8 @@ import (
 // Client ..
 type Client struct {
 	tcpClient *clients.TCPClient
+
+	consoleName string
 }
 
 const (
@@ -26,10 +32,20 @@ func (client *Client) DebugName() (string, error) {
 func (client *Client) SendCommand(command string) (string, error) {
 	_, err := client.tcpClient.WriteString(command)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
-	return client.tcpClient.ReadString()
+	resp, err := client.tcpClient.ReadString()
+	if err != nil {
+		return "", err
+	}
+
+	_, successful, message := validateResponse(resp)
+	if !successful {
+		return "", errors.New(message)
+	}
+
+	return message, nil
 }
 
 // ReadMultilineResponse reads the body of a multiline response and returns it.
@@ -47,6 +63,11 @@ func (client *Client) ReadMultilineResponse() (string, error) {
 
 		lines = append(lines, str)
 	}
+}
+
+// ConsoleName returns the name of the console at the time the connection was established.
+func (client *Client) ConsoleName() string {
+	return client.consoleName
 }
 
 // Close ends the connection with the Xbox.
@@ -119,4 +140,30 @@ func parseMultilineResponse(str string) (map[string]string, error) {
 	}
 
 	return body, nil
+}
+
+// validateResponse validates a string response from the Xbox.
+func validateResponse(str string) (status int, successful bool, message string) {
+	r := regexp.MustCompile(`(?P<status>[\d]{3})-\s(?P<message>.*)`)
+	matches := r.FindStringSubmatch(str)
+	names := r.SubexpNames()
+
+	if len(matches) != 3 {
+		return -1, false, str
+	}
+
+	status = -1
+	message = ""
+	for i := range matches {
+		switch names[i] {
+		case "status":
+			status, _ = strconv.Atoi(matches[i])
+			break
+		case "message":
+			message = matches[i]
+			break
+		}
+	}
+
+	return status, status >= 200 && status <= 299, message
 }
