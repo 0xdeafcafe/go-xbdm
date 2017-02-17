@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/0xdeafcafe/go-xbdm/models"
-	"github.com/0xdeafcafe/go-xbdm/ssv"
 )
 
 // rebootType is a custom type for storing different types of reboot.
@@ -72,11 +71,10 @@ func (client *Client) RunningXBEInfo() (*models.XBEInfo, error) {
 		return nil, err
 	}
 
-	xbeInfo := &models.XBEInfo{}
-	err = ssv.Unmarshal(body, &xbeInfo)
-	if err != nil {
-		return nil, err
-	}
+	xbeInfo := models.NewXBEInfo(body)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return xbeInfo, nil
 }

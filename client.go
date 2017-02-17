@@ -50,16 +50,16 @@ func (client *Client) SendCommand(command string) (string, error) {
 }
 
 // ReadMultilineResponse reads the body of a multiline response and returns it.
-func (client *Client) ReadMultilineResponse() (string, error) {
+func (client *Client) ReadMultilineResponse() ([]string, error) {
 	lines := make([]string, 0)
 	for {
 		str, err := client.tcpClient.ReadString()
 		if err != nil {
-			return strings.Join(lines, " "), err
+			return lines, nil
 		}
 
 		if str == "." {
-			return strings.Join(lines, " "), nil
+			return lines, nil
 		}
 
 		lines = append(lines, str)
