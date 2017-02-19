@@ -118,10 +118,10 @@ func (client *Client) Screenshot() ([]byte, error) {
 func (client *Client) ChangeFreezeState(freezeState freezeState) (err error) {
 	switch freezeState {
 	case FrozenState:
-		_, err = client.SendCommand("freeze")
+		_, err = client.SendCommand("stop")
 		break
 	case UnfrozenState:
-		_, err = client.SendCommand("unfreeze")
+		_, err = client.SendCommand("go")
 		break
 	}
 	return
