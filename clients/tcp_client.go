@@ -55,7 +55,7 @@ func (client *TCPClient) ReadString() (string, error) {
 }
 
 // Read reads the pending response from the xbox.
-func (client *TCPClient) Read(len int) ([]byte, int, error) {
+func (client *TCPClient) Read(len int64) ([]byte, int, error) {
 	buffer := make([]byte, len)
 	n, err := client.Reader.Read(buffer)
 	return buffer, n, err
