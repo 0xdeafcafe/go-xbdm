@@ -18,7 +18,7 @@ go get github.com/0xdeafcafe/go-xbdm
 import "github.com/0xdeafcafe/go-xbdm"
 ````
 
-This examples with be based on the assumption that the Xbox 360 Developer Kit's IP
+This example with be based on the assumption that the Xbox 360 Developer Kit's IP
 address is `192.168.1.88`.
 
 ``` go
