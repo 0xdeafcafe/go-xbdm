@@ -1,5 +1,10 @@
 go-xbdm
 ===
+[![Build status](https://img.shields.io/travis/0xdeafcafe/go-xbdm/master.svg?style=flat-square&label=build%20status)](https://travis-ci.org/0xdeafcafe/go-xbdm)
+[![Github Issues](https://img.shields.io/github/issues/0xdeafcafe/go-xbdm.svg?style=flat-square)](https://github.com/0xdeafcafe/go-xbdm/issues)
+[![Github Forks](https://img.shields.io/github/forks/0xdeafcafe/go-xbdm.svg?style=flat-square)](https://github.com/0xdeafcafe/go-xbdm/network)
+[![Github Stars](https://img.shields.io/github/stars/0xdeafcafe/go-xbdm.svg?style=flat-square)](https://github.com/0xdeafcafe/go-xbdm/stargazers)
+[![Github License](https://img.shields.io/github/license/0xdeafcafe/go-xbdm.svg?style=flat-square)](https://github.com/0xdeafcafe/go-xbdm/blob/master/LICENSE)
 
 A go library for interacting with an Xbox 360 Development Kit.
 
