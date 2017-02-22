@@ -126,3 +126,23 @@ func (client *Client) ChangeFreezeState(freezeState freezeState) (err error) {
 	}
 	return
 }
+
+// ConsoleFeatures gets a list of features available on the console.
+func (client *Client) ConsoleFeatures() ([]string, error) {
+	resp, err := client.SendCommand("consolefeatures")
+	if err != nil {
+		return nil, err
+	}
+
+	return strings.Split(resp, " "), nil
+}
+
+// ConsoleType gets the type of console.
+func (client *Client) ConsoleType() (string, error) {
+	resp, err := client.SendCommand("consoletype")
+	if err != nil {
+		return "", err
+	}
+
+	return resp, nil
+}
