@@ -24,12 +24,14 @@ func main() {
   xbdm, err := goxbdm.NewXBDMClient("192.168.1.88")
   if err != nil {
     fmt.Println("There was an error connecting to the Development Kit.")
+    return
   }
 
   // Set some random memory offset
   resp, err := xbdm.SetMemory(0xBF9BC9CC, "0000fa67")
   if err != nil {
     fmt.Println("There was an error writing memory to the Development Kit.")
+    return
   }
 
   fmt.Println(resp)
